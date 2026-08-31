@@ -1,38 +1,40 @@
-# DBMS Lab Experiment: Implementation and Analysis of Keys in Relational Database
+# DBMS Lab Assignment: Implementation of Different Types of Keys in Relational Database
 
 ## 1. Objective
-To understand and implement different types of keys in a Relational Database Management System (RDBMS), including:
-- **Super Key**
-- **Candidate Key**
-- **Primary Key**
-- **Alternate Key / Unique Key**
-- **Foreign Key (Referential Integrity)**
+To understand, design, and implement different types of keys in a Relational Database Management System (RDBMS), including:
+- **Primary Key** (Entity Integrity)
+- **Candidate Key & Alternate / Unique Key**
+- **Foreign Key** (Referential Integrity)
 - **Composite Primary Key**
+- **Super Key**
 
 ---
 
 ## 2. Problem Statement
-Design and implement a **University Management Database System** using SQL. The database maintains information about academic departments, enrolled students, available courses, and student course registrations (enrollments).
+Design and implement a **University Management Database System** using SQL. The database maintains information about academic departments, registered students, available courses, and student course enrollments.
 
-### Entity-Relationship & Schema Design:
-1. **Department**: `(Department_ID, Department_Name, HOD_Name)`
-2. **Student**: `(Student_ID, Roll_Number, Student_Name, Email, Department_ID)`
-3. **Course**: `(Course_ID, Course_Name, Credits)`
-4. **Enrollment**: `(Student_ID, Course_ID, Semester, Grade)`
+### Entities & Relational Schema:
+1. **Department**: `(<u>Department_ID</u>, Department_Name, HOD_Name)`
+2. **Student**: `(<u>Student_ID</u>, Roll_Number, Student_Name, Email, <i>Department_ID</i>)`
+3. **Course**: `(<u>Course_ID</u>, Course_Name, Credits)`
+4. **Enrollment**: `(<u><i>Student_ID</i>, <i>Course_ID</i></u>, Semester, Grade)`
 
-### Entity-Relationship (ER) Diagram
-*(For full Chen's notation and drawing details, see [ER_Diagram.md](file:///home/krajtilak/Documents/VScode/DBMS%20Lab/ER_Diagram.md))*
+---
+
+## 3. Entity-Relationship (ER) Diagram
+
+### 3.1 Relational ER Diagram (Crow's Foot Notation)
 
 ```mermaid
 erDiagram
-    DEPARTMENT ||--|{ STUDENT : "has"
+    DEPARTMENT ||--|{ STUDENT : "has / employs"
     STUDENT ||--|{ ENROLLMENT : "registers for"
     COURSE ||--|{ ENROLLMENT : "is enrolled by"
 
     DEPARTMENT {
         int Department_ID PK "Primary Key"
         string Department_Name UK "Unique Key"
-        string HOD_Name "HOD Name"
+        string HOD_Name "Head of Department"
     }
 
     STUDENT {
@@ -46,38 +48,58 @@ erDiagram
     COURSE {
         int Course_ID PK "Primary Key"
         string Course_Name "Course Name"
-        int Credits "Credits (>0)"
+        int Credits "Credits (> 0)"
     }
 
     ENROLLMENT {
         int Student_ID PK,FK "Composite PK Part 1, FK -> Student"
         int Course_ID PK,FK "Composite PK Part 2, FK -> Course"
         int Semester "Semester (1-8)"
-        string Grade "Grade"
+        string Grade "Grade (e.g. A+, A, B)"
     }
 ```
 
----
+### 3.2 Conceptual ER Diagram (Chen's Notation)
 
-## 3. Theoretical Overview of Keys
-
-| Key Type | Definition | Example in Schema |
-| :--- | :--- | :--- |
-| **Super Key** | A set of one or more attributes that can uniquely identify a tuple in a relation. | `{Student_ID}`, `{Student_ID, Student_Name}`, `{Roll_Number, Email}` |
-| **Candidate Key** | A minimal super key with no redundant attributes capable of uniquely identifying a record. | `Student_ID`, `Roll_Number`, `Email` in `Student` |
-| **Primary Key** | A chosen candidate key that uniquely identifies each record. Cannot be `NULL`. | `Student_ID` in `Student`, `Department_ID` in `Department` |
-| **Alternate Key** | Candidate keys that are not selected as the Primary Key. Implemented using `UNIQUE` constraints. | `Roll_Number`, `Email` in `Student` |
-| **Foreign Key** | An attribute or combination of attributes that refers to the Primary Key of another relation, establishing referential integrity. | `Department_ID` in `Student` referencing `Department(Department_ID)` |
-| **Composite Key** | A primary key made up of two or more attributes to uniquely identify a record. | `(Student_ID, Course_ID)` in `Enrollment` |
+```text
+                  ( Department_Name )   ( HOD_Name )
+                            \           /
+                       ( <u>Department_ID</u> )
+                                  |
+                        +---------+---------+
+                        |    DEPARTMENT     |
+                        +---------+---------+
+                                  | (1)
+                                  |
+                               < HAS >
+                                  |
+                                  | (N)
+                        +---------+---------+
+                        |      STUDENT      |
+                        +---------+---------+
+                       /     |         |     \
+    ( <u>Student_ID</u> ) ( <u>Roll_No</u> ) ( Student_Name ) ( <u>Email</u> )
+                                  | (M)
+                                  |
+                             < ENROLLS > ----- ( Semester )
+                                  |       \
+                                  | (N)    ( Grade )
+                        +---------+---------+
+                        |      COURSE       |
+                        +---------+---------+
+                                  |
+                       ( <u>Course_ID</u> )
+                            /           \
+                 ( Course_Name )      ( Credits )
+```
 
 ---
 
 ## 4. SQL Implementation
 
-### 4.1 Schema Creation (DDL with Constraints)
+### 4.1 Schema Creation (Task 1 & Task 7)
 
 ```sql
--- Enable foreign key support (SQLite)
 PRAGMA foreign_keys = ON;
 
 -- 1. Department Table
@@ -94,7 +116,7 @@ CREATE TABLE Course (
     Credits INT NOT NULL CHECK (Credits > 0)
 );
 
--- 3. Student Table
+-- 3. Student Table (Candidate Keys: Roll_Number, Email | Foreign Key: Department_ID)
 CREATE TABLE Student (
     Student_ID INT PRIMARY KEY,
     Roll_Number VARCHAR(20) NOT NULL UNIQUE,
@@ -106,7 +128,7 @@ CREATE TABLE Student (
         ON DELETE RESTRICT
 );
 
--- 4. Enrollment Table (Composite Primary Key)
+-- 4. Enrollment Table (Composite Primary Key: Student_ID + Course_ID)
 CREATE TABLE Enrollment (
     Student_ID INT NOT NULL,
     Course_ID INT NOT NULL,
@@ -124,7 +146,7 @@ CREATE TABLE Enrollment (
 
 ---
 
-### 4.2 Data Insertion (DML)
+### 4.2 Data Insertion (Task 2)
 
 ```sql
 -- Insert into Department
@@ -163,11 +185,11 @@ INSERT INTO Enrollment (Student_ID, Course_ID, Semester, Grade) VALUES
 
 ---
 
-## 5. Lab Tasks & Demonstrations
+## 5. Lab Task Demonstrations & Query Outputs
 
-### Task 3: Display All Records from Each Table
+### Task 3: Display Records from Each Table
 
-#### Department Table:
+#### `Department` Table:
 ```sql
 SELECT * FROM Department;
 ```
@@ -178,7 +200,7 @@ SELECT * FROM Department;
 | 103 | Mechanical Engineering | Dr. Robert Vance |
 | 104 | Information Technology | Dr. Sunita Rao |
 
-#### Course Table:
+#### `Course` Table:
 ```sql
 SELECT * FROM Course;
 ```
@@ -190,7 +212,7 @@ SELECT * FROM Course;
 | 504 | Thermodynamics | 3 |
 | 505 | Computer Networks | 3 |
 
-#### Student Table:
+#### `Student` Table:
 ```sql
 SELECT * FROM Student;
 ```
@@ -202,7 +224,7 @@ SELECT * FROM Student;
 | 4 | 23ME101 | Divya Sen | divya.sen@univ.edu | 103 |
 | 5 | 23IT101 | Eshan Verma | eshan.verma@univ.edu | 104 |
 
-#### Enrollment Table:
+#### `Enrollment` Table:
 ```sql
 SELECT * FROM Enrollment;
 ```
@@ -218,91 +240,70 @@ SELECT * FROM Enrollment;
 
 ---
 
-### Task 4: Demonstrate Primary Key Violation
-Attempting to insert a student with an already existing `Student_ID = 1`:
+### Task 4: Primary Key Constraint Demonstration
+Attempting to insert a student with existing `Student_ID = 1`:
 ```sql
 INSERT INTO Student (Student_ID, Roll_Number, Student_Name, Email, Department_ID) 
 VALUES (1, '23CS199', 'Ghost Student', 'ghost@univ.edu', 101);
 ```
-**Observed Result / Output:**
-```text
-Error: UNIQUE constraint failed: Student.Student_ID
-```
-**Explanation:** The Primary Key ensures entity integrity. Duplicate values are rejected by the database engine.
+- **Observed Result:** `Error: UNIQUE constraint failed: Student.Student_ID`
+- **Inference:** Duplicate primary keys violate entity integrity.
 
 ---
 
-### Task 5: Demonstrate Unique Key (Alternate Key) Violation
+### Task 5: Unique Key (Alternate Key) Demonstrations
 
-#### 5a. Attempting duplicate `Roll_Number`:
+#### 5a. Duplicate `Roll_Number`:
 ```sql
 INSERT INTO Student (Student_ID, Roll_Number, Student_Name, Email, Department_ID) 
 VALUES (6, '23CS101', 'Duplicate Roll User', 'newroll@univ.edu', 101);
 ```
-**Observed Result / Output:**
-```text
-Error: UNIQUE constraint failed: Student.Roll_Number
-```
+- **Observed Result:** `Error: UNIQUE constraint failed: Student.Roll_Number`
 
-#### 5b. Attempting duplicate `Email`:
+#### 5b. Duplicate `Email`:
 ```sql
 INSERT INTO Student (Student_ID, Roll_Number, Student_Name, Email, Department_ID) 
 VALUES (7, '23CS103', 'Duplicate Email User', 'bhavna.patel@univ.edu', 101);
 ```
-**Observed Result / Output:**
-```text
-Error: UNIQUE constraint failed: Student.Email
-```
-**Explanation:** The `UNIQUE` constraint ensures that no two rows share the same non-primary candidate key attribute values.
+- **Observed Result:** `Error: UNIQUE constraint failed: Student.Email`
+- **Inference:** The `UNIQUE` constraint guarantees uniqueness for all candidate keys not chosen as the Primary Key.
 
 ---
 
-### Task 6: Demonstrate Foreign Key Violation
-Attempting to insert a student referencing a non-existent `Department_ID = 999`:
+### Task 6: Foreign Key Constraint Demonstration
+Attempting to insert a student with an invalid `Department_ID = 999`:
 ```sql
 INSERT INTO Student (Student_ID, Roll_Number, Student_Name, Email, Department_ID) 
 VALUES (8, '23CS104', 'Invalid Dept Student', 'invalid@univ.edu', 999);
 ```
-**Observed Result / Output:**
-```text
-Error: FOREIGN KEY constraint failed
-```
-**Explanation:** Referential integrity prohibits child tables from referencing non-existent parent keys.
+- **Observed Result:** `Error: FOREIGN KEY constraint failed`
+- **Inference:** Referential integrity prevents referencing non-existent parent records.
 
 ---
 
-### Task 7 & 8: Demonstrate Composite Primary Key Violation in Enrollment
-Attempting duplicate registration of Student 1 in Course 501 `(1, 501)`:
+### Task 8: Composite Primary Key Constraint Violation
+Attempting duplicate combination `(Student_ID = 1, Course_ID = 501)`:
 ```sql
 INSERT INTO Enrollment (Student_ID, Course_ID, Semester, Grade) 
 VALUES (1, 501, 4, 'A');
 ```
-**Observed Result / Output:**
-```text
-Error: UNIQUE constraint failed: Enrollment.Student_ID, Enrollment.Course_ID
-```
-**Explanation:** The composite primary key `(Student_ID, Course_ID)` ensures that a student cannot be registered for the exact same course more than once.
+- **Observed Result:** `Error: UNIQUE constraint failed: Enrollment.Student_ID, Enrollment.Course_ID`
 
 ---
 
-### Task 9: Insert Same Student into a Different Course
-Inserting Student 1 into Course 505:
+### Task 9: Inserting the Same Student into a Different Course
 ```sql
 INSERT INTO Enrollment (Student_ID, Course_ID, Semester, Grade) 
 VALUES (1, 505, 4, 'A');
 
 SELECT * FROM Enrollment WHERE Student_ID = 1 AND Course_ID = 505;
 ```
-**Observed Result / Output:**
-```text
-Query executed successfully (1 row affected).
-1 | 505 | 4 | A
-```
-**Explanation:** While `Student_ID = 1` already exists in `Enrollment`, the *pair* `(1, 505)` is distinct, satisfying the Composite Primary Key constraint.
+- **Observed Result:** Query executed successfully.
+- **Inference:** A composite primary key allows repeated values in individual columns as long as the combined pair `(Student_ID, Course_ID)` is unique.
 
 ---
 
-### Task 10: Display Student Details with Department Name (JOIN)
+### Task 10: Student Details with Department Name (JOIN)
 ```sql
 SELECT 
     s.Student_ID,
@@ -315,7 +316,7 @@ FROM Student s
 INNER JOIN Department d ON s.Department_ID = d.Department_ID
 ORDER BY s.Student_ID;
 ```
-**Query Output:**
+**Output:**
 | Student_ID | Roll_Number | Student_Name | Email | Department_Name | HOD_Name |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | 23CS101 | Aarav Sharma | aarav.sharma@univ.edu | Computer Science & Engineering | Dr. Aris Thorne |
@@ -326,7 +327,7 @@ ORDER BY s.Student_ID;
 
 ---
 
-### Task 11: Display Courses Registered by a Particular Student
+### Task 11: Courses Registered by a Particular Student
 ```sql
 SELECT 
     s.Student_ID,
@@ -342,7 +343,7 @@ INNER JOIN Enrollment e ON s.Student_ID = e.Student_ID
 INNER JOIN Course c ON e.Course_ID = c.Course_ID
 WHERE s.Student_ID = 1;
 ```
-**Query Output:**
+**Output:**
 | Student_ID | Student_Name | Roll_Number | Course_ID | Course_Name | Credits | Semester | Grade |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | Aarav Sharma | 23CS101 | 501 | Database Management Systems | 4 | 4 | A+ |
@@ -351,7 +352,7 @@ WHERE s.Student_ID = 1;
 
 ---
 
-### Task 12: Display Comprehensive Enrollment Details (Multi-table JOIN)
+### Task 12: Comprehensive Enrollment Details (3-Table JOIN)
 ```sql
 SELECT 
     s.Roll_Number,
@@ -368,7 +369,7 @@ INNER JOIN Department d ON s.Department_ID = d.Department_ID
 INNER JOIN Course c ON e.Course_ID = c.Course_ID
 ORDER BY s.Student_ID, c.Course_ID;
 ```
-**Query Output:**
+**Output:**
 | Roll_Number | Student_Name | Department_Name | Course_ID | Course_Name | Credits | Semester | Grade |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 23CS101 | Aarav Sharma | Computer Science & Engineering | 501 | Database Management Systems | 4 | 4 | A+ |
@@ -384,37 +385,14 @@ ORDER BY s.Student_ID, c.Course_ID;
 
 ## 6. Identification of Keys in Each Table (Task 13)
 
-### 1. `Department` Table
-- **Candidate Keys:** `{Department_ID}`, `{Department_Name}`
-- **Primary Key:** `Department_ID`
-- **Alternate Key:** `Department_Name` (enforced with `UNIQUE`)
-- **Super Keys:** `{Department_ID}`, `{Department_Name}`, `{Department_ID, Department_Name}`, `{Department_ID, HOD_Name}`, `{Department_Name, HOD_Name}`, `{Department_ID, Department_Name, HOD_Name}`
-- **Foreign Keys:** *None*
-
-### 2. `Student` Table
-- **Candidate Keys:** `{Student_ID}`, `{Roll_Number}`, `{Email}`
-- **Primary Key:** `Student_ID`
-- **Alternate Keys:** `Roll_Number`, `Email` (enforced with `UNIQUE`)
-- **Super Keys:** Any superset of any Candidate Key (e.g., `{Student_ID, Student_Name}`, `{Roll_Number, Department_ID}`)
-- **Foreign Key:** `Department_ID` references `Department(Department_ID)`
-
-### 3. `Course` Table
-- **Candidate Keys:** `{Course_ID}`
-- **Primary Key:** `Course_ID`
-- **Alternate Keys:** *None*
-- **Super Keys:** `{Course_ID}`, `{Course_ID, Course_Name}`, `{Course_ID, Credits}`, `{Course_ID, Course_Name, Credits}`
-- **Foreign Keys:** *None*
-
-### 4. `Enrollment` Table
-- **Candidate Keys:** `{(Student_ID, Course_ID)}`
-- **Primary Key / Composite Primary Key:** `(Student_ID, Course_ID)`
-- **Alternate Keys:** *None*
-- **Super Keys:** `{(Student_ID, Course_ID)}`, `{(Student_ID, Course_ID, Semester)}`, `{(Student_ID, Course_ID, Grade)}`, `{(Student_ID, Course_ID, Semester, Grade)}`
-- **Foreign Keys:**
-  - `Student_ID` references `Student(Student_ID)`
-  - `Course_ID` references `Course(Course_ID)`
+| Table Name | Primary Key | Candidate Keys | Alternate Keys | Foreign Key(s) | Composite Key |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`Department`** | `Department_ID` | `{Department_ID}`, `{Department_Name}` | `Department_Name` | *None* | *None* |
+| **`Student`** | `Student_ID` | `{Student_ID}`, `{Roll_Number}`, `{Email}` | `Roll_Number`, `Email` | `Department_ID` &rarr; `Department(Department_ID)` | *None* |
+| **`Course`** | `Course_ID` | `{Course_ID}` | *None* | *None* | *None* |
+| **`Enrollment`** | `(Student_ID, Course_ID)` | `{(Student_ID, Course_ID)}` | *None* | `Student_ID` &rarr; `Student(Student_ID)`<br>`Course_ID` &rarr; `Course(Course_ID)` | `(Student_ID, Course_ID)` |
 
 ---
 
 ## 7. Conclusion
-In this experiment, relational database keys and constraints were systematically designed, implemented, and verified using SQL. Integrity rules—such as Entity Integrity (Primary Keys and Composite Keys), Domain Integrity (Check constraints), and Referential Integrity (Foreign Keys)—were successfully tested and observed to prevent invalid or inconsistent data entries.
+In this lab assignment, different types of relational keys (Primary, Candidate, Alternate, Foreign, Composite, and Super Keys) and integrity constraints were designed, implemented, and verified. Through testing duplicate and invalid entries, it was observed that entity and referential integrity constraints protect the database against redundant and inconsistent data.
